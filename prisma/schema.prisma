@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPERADMIN 
+  ADMIN      
+  EMPLOYEE   
+}
+
+
+model Network {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now())
+  ownerId   String?  @map("owner_id")
+
+  stores    Store[] 
+}
+
+
+model Store {
+  id            String                @id @default(uuid())
+  networkId     String?               @map("network_id") 
+  name          String                @db.VarChar(100)
+  address       String?               @db.VarChar(255)
+  createdAt     DateTime              @default(now())
+  network       Network?              @relation(fields: [networkId], references: [id])
+
+  users         UserStorePermission[] 
+  clients       Client[] 
+  consultations Consultation[] 
+  products      Product[] 
+  sales         Sale[] 
+
+  @@index([networkId], name: "idx_network_id") 
+}
+
+
+model User {
+  id            String                @id @default(uuid())
+  name          String                @db.VarChar(100)
+  email         String                @unique @db.VarChar(100)
+  cpf           String?               @unique @db.VarChar(14) 
+  phone         String?               @db.VarChar(20)
+  passwordHash  String                @db.VarChar(255)
+  role          UserRole              
+  createdAt     DateTime              @default(now())
+
+  permissions   UserStorePermission[] 
+  consultations Consultation[] 
+  PasswordResetToken PasswordResetToken[]
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(50) 
+  description String?  @db.VarChar(255) 
+  createdAt   DateTime @default(now())
+
+  userStorePermissions UserStorePermission[] 
+
+  @@unique([name]) 
+}
+
+
+model UserStorePermission {
+  userId      String   @map("user_id")
+  storeId     String   @map("store_id")
+  permissionId Int     @map("permission_id")
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  store       Store    @relation(fields: [storeId], references: [id])
+  permission  Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([userId, storeId, permissionId])
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  name      String   @db.VarChar(100)
+  email     String?  @db.VarChar(100)
+  phone     String?  @db.VarChar(20)
+  address   String?  @db.VarChar(255)
+  createdAt DateTime @default(now())
+  store     Store    @relation(fields: [storeId], references: [id])
+  animals   Animal[] 
+  sales     Sale[] 
+
+  @@index([storeId], name: "idx_store_id") 
+}
+
+
+model Animal {
+  id            String         @id @default(uuid())
+  clientId      String         @map("client_id")
+  name          String         @db.VarChar(100)
+  species       String?        @db.VarChar(50)
+  breed         String?        @db.VarChar(50)
+  birthDate     DateTime?
+  createdAt     DateTime       @default(now())
+
+  client        Client         @relation(fields: [clientId], references: [id])
+  consultations Consultation[] 
+
+  @@index([clientId], name: "idx_client_id") 
+}
+
+
+model Consultation {
+  id             String   @id @default(uuid())
+  storeId        String   @map("store_id")
+  animalId       String   @map("animal_id")
+  veterinarianId String   @map("veterinarian_id")
+  dateTime       DateTime
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  store          Store    @relation(fields: [storeId], references: [id])
+  animal         Animal   @relation(fields: [animalId], references: [id])
+  veterinarian   User     @relation(fields: [veterinarianId], references: [id])
+
+  @@index([storeId], name: "idx_store_id_consultation") 
+  @@index([animalId], name: "idx_animal_id") 
+  @@index([veterinarianId], name: "idx_veterinarian_id") 
+}
+
+model Product {
+  id             String    @id @default(uuid())
+  storeId        String    @map("store_id")
+  name           String    @db.VarChar(100)
+  description    String?   @db.VarChar(255) 
+  category       String?   @db.VarChar(50) 
+  price          Float
+  stock          Int
+  expirationDate DateTime?
+  createdAt      DateTime  @default(now())
+  store          Store     @relation(fields: [storeId], references: [id])
+  sales          Sale[] 
+
+  @@index([storeId], name: "idx_store_id_product") 
+}
+
+model Sale {
+  id         String   @id @default(uuid())
+  storeId    String   @map("store_id")
+  clientId   String?  @map("client_id") 
+  productId  String   @map("product_id")
+  quantity   Int
+  saleDate   DateTime @default(now())
+  totalPrice Float
+  
+  store      Store    @relation(fields: [storeId], references: [id])
+  client     Client?  @relation(fields: [clientId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@index([storeId], name: "idx_store_id_sale") 
+  @@index([clientId], name: "idx_client_id_sale") 
+  @@index([productId], name: "idx_product_id_sale") 
+}
+
+
+model PasswordResetToken {
+  id        String      @id @default(uuid())
+  userId    String      @map("user_id")
+  token     String   @db.VarChar(255)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "idx_user_id")
+  @@index([token], map: "idx_token")
+}
