@@ -8,7 +8,7 @@ export const getUserByIDRoute: FastifyPluginCallbackZod = (app) => {
     {
       schema: {
         tags: ["User"],
-        summary: "Fetch all users",
+        summary: "Fetch user by ID",
         params: z.object({
           id: z.string(),
         }),
