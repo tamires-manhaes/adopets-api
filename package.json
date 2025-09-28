@@ -35,8 +35,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.6",
+    "@faker-js/faker": "^10.0.0",
     "@types/nodemailer": "^6.4.17",
     "prisma": "^6.11.1",
+    "tsx": "^4.20.6",
     "ultracite": "5.0.32"
+  },
+  "prisma": {
+    "seed": "tsx ./prisma/seed.ts"
   }
 }
